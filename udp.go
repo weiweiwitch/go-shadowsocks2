@@ -7,7 +7,7 @@ import (
 
 	"sync"
 
-	"github.com/shadowsocks/go-shadowsocks2/socks"
+	"github.com/weiweiwitch/go-shadowsocks2/socks"
 )
 
 const udpBufSize = 64 * 1024
