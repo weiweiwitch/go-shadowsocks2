@@ -81,18 +81,19 @@ func main() {
 	}
 
 	if flags.Client != "" { // client mode
-		addr := flags.Client
+		ssClientAddr := flags.Client
 		cipher := flags.Cipher
 		password := flags.Password
 		var err error
 
-		if strings.HasPrefix(addr, "ss://") {
-			addr, cipher, password, err = parseURL(addr)
+		if strings.HasPrefix(ssClientAddr, "ss://") {
+			ssClientAddr, cipher, password, err = parseURL(ssClientAddr)
 			if err != nil {
 				log.Fatal(err)
 			}
 		}
 
+		// 选择加解密模块。
 		ciph, err := core.PickCipher(cipher, key, password)
 		if err != nil {
 			log.Fatal(err)
@@ -101,50 +102,55 @@ func main() {
 		if flags.UDPTun != "" {
 			for _, tun := range strings.Split(flags.UDPTun, ",") {
 				p := strings.Split(tun, "=")
-				go udpLocal(p[0], addr, p[1], ciph.PacketConn)
+				srcAddr := p[0]
+				targetAddr := p[1]
+				go udpLocal(srcAddr, ssClientAddr, targetAddr, ciph.PacketConn)
 			}
 		}
 
 		if flags.TCPTun != "" {
 			for _, tun := range strings.Split(flags.TCPTun, ",") {
 				p := strings.Split(tun, "=")
-				go tcpTun(p[0], addr, p[1], ciph.StreamConn)
+				srcAddr := p[0]
+				targetAddr := p[1]
+				go tcpTun(srcAddr, ssClientAddr, targetAddr, ciph.StreamConn)
 			}
 		}
 
 		if flags.Socks != "" {
-			go socksLocal(flags.Socks, addr, ciph.StreamConn)
+			go socksLocal(flags.Socks, ssClientAddr, ciph.StreamConn)
 		}
 
 		if flags.RedirTCP != "" {
-			go redirLocal(flags.RedirTCP, addr, ciph.StreamConn)
+			go redirLocal(flags.RedirTCP, ssClientAddr, ciph.StreamConn)
 		}
 
 		if flags.RedirTCP6 != "" {
-			go redir6Local(flags.RedirTCP6, addr, ciph.StreamConn)
+			go redir6Local(flags.RedirTCP6, ssClientAddr, ciph.StreamConn)
 		}
 	}
 
 	if flags.Server != "" { // server mode
-		addr := flags.Server
+		ssServAddr := flags.Server
 		cipher := flags.Cipher
 		password := flags.Password
 		var err error
 
-		if strings.HasPrefix(addr, "ss://") {
-			addr, cipher, password, err = parseURL(addr)
+		if strings.HasPrefix(ssServAddr, "ss://") {
+			ssServAddr, cipher, password, err = parseURL(ssServAddr)
 			if err != nil {
 				log.Fatal(err)
 			}
 		}
 
+		// 选择加解密模块。
 		ciph, err := core.PickCipher(cipher, key, password)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		go udpRemote(addr, ciph.PacketConn)
-		go tcpRemote(addr, ciph.StreamConn)
+		go udpRemote(ssServAddr, ciph.PacketConn)
+		go tcpRemote(ssServAddr, ciph.StreamConn)
 	}
 
 	sigCh := make(chan os.Signal, 1)
